@@ -1,0 +1,8 @@
+.venv
+.gradio
+.gradio/flagged/
+*.jpg
+*.png
+*.csv
+*.h5
+__pycache__/
