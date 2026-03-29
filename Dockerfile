@@ -1,19 +1,22 @@
-# Use Python 3.11 base image (TensorFlow compatible)
-FROM python:3.11-slim
+# Use official TensorFlow image (includes Python 3.11 + TF 2.19)
+FROM tensorflow/tensorflow:2.19.0
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /app
 
 # Copy requirements first (for caching)
 COPY requirements.txt .
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and build tools first
+RUN pip install --upgrade pip setuptools wheel
 
-# Copy the rest of your project files
+# Install only lightweight dependencies (TensorFlow is already included)
+RUN pip install --no-cache-dir --ignore-installed -r requirements.txt
+
+# Copy the rest of your project
 COPY . .
 
-# Expose port for Streamlit
+# Expose Streamlit port
 EXPOSE 8080
 
 # Run Streamlit app (choose streamlit.py as entry point)

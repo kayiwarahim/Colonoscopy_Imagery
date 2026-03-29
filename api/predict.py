@@ -3,7 +3,6 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import os, io, requests, tempfile
 from PIL import Image
-import io, requests
 
 # =====================================================
 # CONFIGURATION
@@ -11,7 +10,6 @@ import io, requests
 IMG_SIZE = 224
 NUM_CLASSES = 3
 
-# Hugging Face URL of your model file (.h5 format)
 MODEL_URL = "https://huggingface.co/kayiwarahim/mobilenet_v2/resolve/main/mobilenet_v2.h5"
 
 # =====================================================
@@ -27,16 +25,14 @@ def load_model_from_hf():
         if response.status_code != 200:
             raise RuntimeError(f"Failed to fetch model: {response.status_code}")
 
-        # Write to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp:
             tmp.write(response.content)
             tmp_path = tmp.name
 
-        # Load model from the temp file
-        _model = load_model(tmp_path)
+        # Just use the standard loader
+        _model = load_model(tmp_path, compile=False)
         print("Model loaded successfully!")
 
-        # Optional: clean up temp file
         os.remove(tmp_path)
 
     return _model
@@ -56,13 +52,11 @@ def predict_image(image_bytes):
     except Exception:
         return {'error': 'Invalid image file'}
 
-    # Preprocess image
     img = img.resize((IMG_SIZE, IMG_SIZE))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
-    x = x / 255.0  # normalize
+    x = x / 255.0
 
-    # Predict
     preds = model.predict(x)
     pred_class = class_names[np.argmax(preds, axis=1)[0]]
 
