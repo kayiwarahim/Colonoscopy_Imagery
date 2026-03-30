@@ -1,24 +1,19 @@
-import streamlit as st
-from api.predict import predict_image
-import io
-from PIL import Image
+import importlib.util
+from pathlib import Path
+import sys
 
-st.title("Automated Multi-Class Gastrointestinal Anomaly Detection in Colonoscopy Imagery")
-st.write("Upload a colonoscopy image to get a prediction.")
 
-# File uploader
-uploaded_file = st.file_uploader("Upload Colonoscopy Image", type=["jpg", "jpeg", "png"])
+PROJECT_ROOT = Path(__file__).resolve().parent
 
-if uploaded_file is not None:
-    # Display the image
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+# Prevent this launcher file from shadowing the installed `streamlit` package.
+sys.path = [path for path in sys.path if Path(path).resolve() != PROJECT_ROOT]
+sys.path.append(str(PROJECT_ROOT))
+app_module_path = PROJECT_ROOT / "streamlit_app.py"
+spec = importlib.util.spec_from_file_location("streamlit_app", app_module_path)
+streamlit_app = importlib.util.module_from_spec(spec)
+assert spec is not None and spec.loader is not None
+spec.loader.exec_module(streamlit_app)
 
-    # Convert to bytes
-    buf = io.BytesIO()
-    image.save(buf, format="JPEG")
-    buf.seek(0)
 
-    # Run prediction
-    result = predict_image(buf.read())
-    st.success(f"Disease Predicted: {result['prediction']}")
+if __name__ == "__main__":
+    streamlit_app.main()
