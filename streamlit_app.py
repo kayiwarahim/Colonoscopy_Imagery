@@ -1,5 +1,6 @@
 import io
 import base64
+from unittest import result
 
 import streamlit as st
 from PIL import Image
@@ -41,9 +42,10 @@ def main():
     buf = io.BytesIO()
     image.save(buf, format="JPEG")
     buf.seek(0)
-
-    # ✅ FIXED FUNCTION CALL
-    result = predict_image(buf.read(), dataset_type)
+    
+    # ✅ Show loading instead of white screen
+    with st.spinner("🔄 Loading model and analyzing image..."):
+        result = predict_image(buf.read(), dataset_type)
 
     # Handle errors
     if "error" in result:
@@ -51,7 +53,11 @@ def main():
         return
 
     # ✅ DISPLAY RESULTS
-    st.success(f"Prediction: {result['prediction']}")
+    if "Unknown" in result["prediction"]:
+        st.warning("⚠️ This does not appear to be a valid colon image.")
+    else:
+        st.success(f"Prediction: {result['prediction']}")
+    #st.success(f"Prediction: {result['prediction']}")
     st.info(f"Confidence: {result['confidence']}%")
     st.write(f"Model Used: {result['model_used']}")
 

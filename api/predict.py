@@ -294,6 +294,17 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
 
     pred_label = display[pred_idx]
     confidence = round(probs[pred_idx] * 100, 2)
+    #added to predict non-colon images
+    if confidence < 70:
+        return {
+        "prediction": "Unknown / Not a colon image",
+        "confidence": confidence,
+        "all_probs": all_probs,
+        "gradcam_image": gradcam_b64,
+        "original_image": original_b64,
+        "model_used": model_name,
+        "dataset_type": dataset_type,
+    }
     all_probs  = {
         label: round(prob * 100, 2)
         for label, prob in zip(display, probs)
