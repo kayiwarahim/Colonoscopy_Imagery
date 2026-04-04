@@ -27,8 +27,8 @@ from PIL import Image
 IMG_SIZE = 224
 HF_BASE  = "https://huggingface.co/kayiwarahim"
 
-COLON_MODEL_URL = f"{HF_BASE}/D2_DenseNet121/blob/main/DenseNet121_dataset2.keras"
-GI_MODEL_URL    = f"{HF_BASE}/D1_DenseNet121/blob/main/DenseNet121_dataset1.keras"
+COLON_MODEL_URL = f"{HF_BASE}/D2_DenseNet121/resolve/main/DenseNet121_dataset2.keras"
+GI_MODEL_URL    = f"{HF_BASE}/D1_DenseNet121/resolve/main/DenseNet121_dataset1.keras"
 
 # Internal class folder names (from your Kaggle dataset)
 COLON_LABELS  = ["colon_aca", "colon_n"]
