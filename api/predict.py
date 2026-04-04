@@ -25,10 +25,10 @@ from PIL import Image
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────
 IMG_SIZE = 224
-HF_BASE  = "https://huggingface.co/snamembwa/colon_cancer/resolve/main"
+HF_BASE  = "https://huggingface.co/kayiwarahim"
 
-COLON_MODEL_URL = f"{HF_BASE}/model2_efficientnetb0_colon_best.keras"
-GI_MODEL_URL    = f"{HF_BASE}/model5_resnet50_gi_best.keras"
+COLON_MODEL_URL = f"{HF_BASE}/D2_DenseNet121/blob/main/DenseNet121_dataset2.keras"
+GI_MODEL_URL    = f"{HF_BASE}/D1_DenseNet121/blob/main/DenseNet121_dataset1.keras"
 
 # Internal class folder names (from your Kaggle dataset)
 COLON_LABELS  = ["colon_aca", "colon_n"]
@@ -259,14 +259,14 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
         preprocess = preprocess_colon
         display    = COLON_DISPLAY
         is_binary  = True
-        model_name = "EfficientNetB0"
+        model_name = "DenseNet121"
 
     elif dataset_type == "gi":
         model      = load_gi_model()
         preprocess = preprocess_gi
         display    = GI_DISPLAY
         is_binary  = False
-        model_name = "ResNet50"
+        model_name = "DenseNet121"
 
     else:
         return {
