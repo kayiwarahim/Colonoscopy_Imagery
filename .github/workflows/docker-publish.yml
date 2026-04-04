@@ -31,4 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/colonoscopy_imagery:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/coloncancer:v1.0.0
