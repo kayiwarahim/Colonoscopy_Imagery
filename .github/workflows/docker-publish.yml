@@ -31,4 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/coloncancer:v1.0.0
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/coloncancer:v${{ github.run_number }}
