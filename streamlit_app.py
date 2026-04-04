@@ -1,7 +1,6 @@
 import io
 import base64
 from unittest import result
-
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -9,12 +8,10 @@ import matplotlib.pyplot as plt
 
 from api.predict import predict_image
 
-
 def base64_to_image(base64_str):
     """Convert base64 string back to PIL image"""
     image_bytes = base64.b64decode(base64_str)
     return Image.open(io.BytesIO(image_bytes))
-
 
 def main():
     st.title("Automated Multi-Class Gastrointestinal Anomaly Detection")
@@ -87,7 +84,6 @@ def main():
 
     with col2:
         st.image(gradcam_img, caption="Grad-CAM Heatmap")
-
 
 if __name__ == "__main__":
     main()
