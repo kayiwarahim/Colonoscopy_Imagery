@@ -27,7 +27,7 @@ def main():
     """, unsafe_allow_html=True)
     
     st.title("GastroAI")
-    st.image("images\\logo.png", width=150)
+    st.image("images/logo.png", width=150)
     st.markdown("### Automated Multi-Class Gastrointestinal Anomaly Detection")
     
     with st.sidebar:
