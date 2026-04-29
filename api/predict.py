@@ -27,8 +27,8 @@ from PIL import Image
 IMG_SIZE = 224
 HF_BASE  = "https://huggingface.co/snamembwa/colon_cancer/resolve/main"
 
-COLON_MODEL_URL = f"{HF_BASE}/model2_efficientnetb0_colon_best.keras"
-GI_MODEL_URL    = f"{HF_BASE}/model5_resnet50_gi_best.keras"
+COLON_MODEL_URL = f"{HF_BASE}/DenseNet121_dataset2.keras"
+GI_MODEL_URL    = f"{HF_BASE}/DenseNet121_dataset1.keras"
 
 # Internal class folder names (from your Kaggle dataset)
 COLON_LABELS  = ["colon_aca", "colon_n"]
@@ -43,8 +43,8 @@ GI_DISPLAY    = ["Normal", "Ulcerative Colitis", "Polyps"]
 # MODEL CACHE
 # Both models download once and stay in memory
 # ─────────────────────────────────────────────────────────────
-_colon_model = None   # EfficientNetB0
-_gi_model    = None   # ResNet50
+_colon_model = None   # DenseNet121
+_gi_model    = None   # DenseNet121
 
 
 def _download_model(url: str, label: str):
@@ -79,34 +79,34 @@ def _download_model(url: str, label: str):
     # Delete temp file immediately after loading into memory
     os.remove(tmp_path)
 
-    print(f"  ✅ {label} loaded — {model.count_params():,} parameters")
+    print(f"   {label} loaded — {model.count_params():,} parameters")
     return model
 
 
 def load_colon_model():
     """
-    Returns EfficientNetB0 colon model.
+    Returns DenseNet121 colon model.
     Downloads from Hugging Face on first call, cached after that.
     """
     global _colon_model
     if _colon_model is None:
         _colon_model = _download_model(
             COLON_MODEL_URL,
-            "Colon — EfficientNetB0 (Binary)"
+            "Colon — DenseNet121 (Binary)"
         )
     return _colon_model
 
 
 def load_gi_model():
     """
-    Returns ResNet50 GI model.
+    Returns DenseNet121 GI model.
     Downloads from Hugging Face on first call, cached after that.
     """
     global _gi_model
     if _gi_model is None:
         _gi_model = _download_model(
             GI_MODEL_URL,
-            "GI — ResNet50 (3-Class)"
+            "GI — DenseNet121 (3-Class)"
         )
     return _gi_model
 
@@ -118,24 +118,23 @@ def load_gi_model():
 # ─────────────────────────────────────────────────────────────
 def preprocess_colon(pil_img):
     """
-    EfficientNetB0 preprocessing.
+    DenseNet121 preprocessing.
     Scales pixel values to [-1, 1] range.
     """
     img = pil_img.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img, dtype=np.float32)
-    arr = tf.keras.applications.efficientnet.preprocess_input(arr.copy())
+    arr = tf.keras.applications.densenet.preprocess_input(arr.copy())
     return np.expand_dims(arr, axis=0), np.array(img)
 
 
 def preprocess_gi(pil_img):
     """
-    ResNet50 preprocessing.
-    Subtracts ImageNet channel means [103.939, 116.779, 123.68],
-    converts RGB to BGR.
+    DenseNet121 preprocessing.
+    Scales pixel values to [-1, 1] range.
     """
     img = pil_img.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img, dtype=np.float32)
-    arr = tf.keras.applications.resnet50.preprocess_input(arr.copy())
+    arr = tf.keras.applications.densenet.preprocess_input(arr.copy())
     return np.expand_dims(arr, axis=0), np.array(img)
 
 
@@ -259,14 +258,14 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
         preprocess = preprocess_colon
         display    = COLON_DISPLAY
         is_binary  = True
-        model_name = "EfficientNetB0"
+        model_name = "DenseNet121"
 
     elif dataset_type == "gi":
         model      = load_gi_model()
         preprocess = preprocess_gi
         display    = GI_DISPLAY
         is_binary  = False
-        model_name = "ResNet50"
+        model_name = "DenseNet121"
 
     else:
         return {
