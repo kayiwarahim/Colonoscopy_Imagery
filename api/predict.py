@@ -35,8 +35,8 @@ COLON_LABELS  = ["colon_aca", "colon_n"]
 GI_LABELS     = ["0_normal", "1_ulcerative_colitis", "2_polyps"]
 
 # Display names shown to the user
-COLON_DISPLAY = ["Normal","Adenocarcinoma"]
-#COLON_DISPLAY = ["Adenocarcinoma", "Normal"]
+#COLON_DISPLAY = ["Normal","Adenocarcinoma"]
+COLON_DISPLAY = ["Adenocarcinoma", "Normal"]
 GI_DISPLAY    = ["Normal", "Ulcerative Colitis", "Polyps"]
 
 # ─────────────────────────────────────────────────────────────
