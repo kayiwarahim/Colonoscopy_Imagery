@@ -13,77 +13,71 @@ def base64_to_image(base64_str):
     image_bytes = base64.b64decode(base64_str)
     return Image.open(io.BytesIO(image_bytes))
 
+        
 def main():
-    st.title("Automated Multi-Class Gastrointestinal Anomaly Detection")
-    st.write("Upload a colonoscopy image to get predictions.")
-
-    # ✅ DATASET SELECTOR (NEW)
-    dataset_type = st.selectbox(
-        "Select Model",
-        ["colon", "gi"]
-    )
-
-    uploaded_file = st.file_uploader(
-        "Upload Colonoscopy Image",
-        type=["jpg", "jpeg", "png"],
-    )
-
-    if uploaded_file is None:
-        return
-
-    # Show uploaded image
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", width='stretch')
-
-    # Convert to bytes
-    buf = io.BytesIO()
-    image.save(buf, format="JPEG")
-    buf.seek(0)
+    st.set_page_config(page_title="GastroAI", page_icon="C:\\dev\\Colonoscopy_Imagery\\images\\logo2.png", layout="wide")
     
-    # ✅ Show loading instead of white screen
-    with st.spinner("🔄 Loading model and analyzing image..."):
-        result = predict_image(buf.read(), dataset_type)
-
-    # Handle errors
-    if "error" in result:
-        st.error(result["error"])
-        return
-
-    # ✅ DISPLAY RESULTS
-    if "Unknown" in result["prediction"]:
-        st.warning("⚠️ This does not appear to be a valid colon image.")
-    else:
-        st.success(f"Prediction: {result['prediction']}")
-    #st.success(f"Prediction: {result['prediction']}")
-    st.info(f"Confidence: {result['confidence']}%")
-    st.write(f"Model Used: {result['model_used']}")
-
-    # ✅ BAR CHART (NEW 🔥)
-    st.subheader("Class Probabilities")
-    probs = result["all_probs"]
-
-    labels = list(probs.keys())
-    values = list(probs.values())
-
-    fig, ax = plt.subplots()
-    ax.bar(labels, values)
-    ax.set_ylabel("Confidence (%)")
-    ax.set_ylim([0, 100])
-    st.pyplot(fig)
-
-    # ✅ SHOW GRAD-CAM (NEW 🔥)
-    st.subheader("Grad-CAM Visualization")
-
-    gradcam_img = base64_to_image(result["gradcam_image"])
-    original_img = base64_to_image(result["original_image"])
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.image(original_img, caption="Original Image")
-
-    with col2:
-        st.image(gradcam_img, caption="Grad-CAM Heatmap")
+    # custom CSS
+    st.markdown("""
+    <style>
+    .stApp { background-color: #f8f9fa; }
+    .stButton > button { background-color: #2C7DA0; color: white; border-radius: 8px; }
+    div.stFileUploader { border: 2px dashed #2C7DA0; border-radius: 12px; padding: 15px; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.title("GastroAI")
+    st.image("C:\\dev\\Colonoscopy_Imagery\\images\\logo.png", width=150)
+    st.markdown("### Automated Multi-Class Gastrointestinal Anomaly Detection")
+    
+    with st.sidebar:
+        st.header("Settings")
+        dataset_type = st.selectbox("Select Model", ["colon", "gi"])
+        st.markdown("---")
+        st.caption("Powered by DenseNet121 | Grad-CAM Explainability")
+    
+    uploaded_file = st.file_uploader("Upload an image (JPG, JPEG, PNG)", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
+        
+        # Preview and quick results side by side
+        col_left, col_right = st.columns(2)
+        with col_left:
+            st.image(image, caption="Uploaded Image", use_container_width=True)
+        with col_right:
+            with st.spinner("Analyzing..."):
+                buf = io.BytesIO()
+                image.save(buf, format="JPEG")
+                result = predict_image(buf.getvalue(), dataset_type)
+            
+            if "error" in result:
+                st.error(result["error"])
+                return
+            
+            st.success(f"**Prediction:** {result['prediction']}")
+            st.info(f"**Confidence:** {result['confidence']}%")
+            st.caption(f"Model: {result['model_used']}")
+        
+        # Expandable detailed analysis
+        with st.expander("Detailed Analysis", expanded=True):
+            # Bar chart using Plotly (or matplotlib as fallback)
+            probs = result["all_probs"]
+            import plotly.express as px
+            fig = px.bar(x=list(probs.keys()), y=list(probs.values()),
+                         title="Class Probabilities", labels={"x": "Class", "y": "Confidence (%)"},
+                         color=list(probs.keys()), color_discrete_sequence=px.colors.sequential.Tealgrn)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Grad-CAM side by side
+            st.subheader("Explainability: Grad-CAM Heatmap")
+            grad_img = base64_to_image(result["gradcam_image"])
+            orig_img = base64_to_image(result["original_image"])
+            c1, c2 = st.columns(2)
+            with c1:
+                st.image(orig_img, caption="Original", use_container_width=True)
+            with c2:
+                st.image(grad_img, caption="Attention Map", use_container_width=True)
 
 if __name__ == "__main__":
     main()
