@@ -15,7 +15,7 @@ def base64_to_image(base64_str):
 
         
 def main():
-    st.set_page_config(page_title="GastroAI", page_icon="C:\\dev\\Colonoscopy_Imagery\\images\\logo2.png", layout="wide")
+    st.set_page_config(page_title="GastroAI", page_icon="images\\logo2.png", layout="wide")
     
     # custom CSS
     st.markdown("""
@@ -27,7 +27,7 @@ def main():
     """, unsafe_allow_html=True)
     
     st.title("GastroAI")
-    st.image("C:\\dev\\Colonoscopy_Imagery\\images\\logo.png", width=150)
+    st.image("images\\logo.png", width=150)
     st.markdown("### Automated Multi-Class Gastrointestinal Anomaly Detection")
     
     with st.sidebar:
