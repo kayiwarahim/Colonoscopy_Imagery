@@ -15,7 +15,7 @@ def base64_to_image(base64_str):
 
         
 def main():
-    st.set_page_config(page_title="GastroAI", page_icon="images\\logo2.png", layout="wide")
+    st.set_page_config(page_title="GastroAI", page_icon="images/logo2.png", layout="wide")
     
     # custom CSS
     st.markdown("""
@@ -33,6 +33,8 @@ def main():
     with st.sidebar:
         st.header("Settings")
         dataset_type = st.selectbox("Select Model", ["colon", "gi"])
+        st.caption("colon stands for the histopathology images")
+        st.caption("gi stands for the gastrointestinal images")
         st.markdown("---")
         st.caption("Powered by DenseNet121 | Grad-CAM Explainability")
     
