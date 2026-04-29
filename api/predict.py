@@ -1,3 +1,16 @@
+"""
+model_loader.py
+---------------
+Handles loading, preprocessing, inference and Grad-CAM
+for both deployed models:
+
+  Colon Dataset  →  EfficientNetB0  (Binary: ACA vs Normal)
+  GI Dataset     →  ResNet50        (3-Class: Normal / Colitis / Polyps)
+
+Both models are downloaded from Hugging Face on first request
+and cached in memory for all subsequent requests.
+"""
+
 import os
 import io
 import base64
@@ -12,17 +25,17 @@ from PIL import Image
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────────
 IMG_SIZE = 224
-HF_BASE  = "https://huggingface.co/kayiwarahim"
+HF_BASE  = "https://huggingface.co/snamembwa/colon_cancer/resolve/main"
 
-COLON_MODEL_URL = f"{HF_BASE}/D2_DenseNet121/resolve/main/DenseNet121_dataset2.keras"
-GI_MODEL_URL    = f"{HF_BASE}/D1_DenseNet121/resolve/main/DenseNet121_dataset1.keras"
+COLON_MODEL_URL = f"{HF_BASE}/DenseNet121_dataset2.keras"
+GI_MODEL_URL    = f"{HF_BASE}/DenseNet121_dataset1.keras"
 
 # Internal class folder names (from your Kaggle dataset)
 COLON_LABELS  = ["colon_aca", "colon_n"]
 GI_LABELS     = ["0_normal", "1_ulcerative_colitis", "2_polyps"]
 
 # Display names shown to the user
-COLON_DISPLAY = ["Colon Adenocarcinoma", "Colon Normal"]
+COLON_DISPLAY = ["Normal","Adenocarcinoma"]
 #COLON_DISPLAY = ["Adenocarcinoma", "Normal"]
 GI_DISPLAY    = ["Normal", "Ulcerative Colitis", "Polyps"]
 
@@ -30,12 +43,16 @@ GI_DISPLAY    = ["Normal", "Ulcerative Colitis", "Polyps"]
 # MODEL CACHE
 # Both models download once and stay in memory
 # ─────────────────────────────────────────────────────────────
-_colon_model = None   # EfficientNetB0
-_gi_model    = None   # EfficientNetB0
+_colon_model = None   # DenseNet121
+_gi_model    = None   # DenseNet121
 
 
 def _download_model(url: str, label: str):
-
+    """
+    Downloads a .keras model from Hugging Face into a temp file,
+    loads it with TensorFlow, deletes the temp file, returns the model.
+    Uses streaming so large files don't cause memory issues.
+    """
     print(f"\nDownloading {label} model from Hugging Face...")
     print(f"  URL: {url}")
 
@@ -62,30 +79,37 @@ def _download_model(url: str, label: str):
     # Delete temp file immediately after loading into memory
     os.remove(tmp_path)
 
-    print(f"  {label} loaded — {model.count_params():,} parameters")
+    print(f"   {label} loaded — {model.count_params():,} parameters")
     return model
 
 
 def load_colon_model():
-
+    """
+    Returns DenseNet121 colon model.
+    Downloads from Hugging Face on first call, cached after that.
+    """
     global _colon_model
     if _colon_model is None:
         _colon_model = _download_model(
             COLON_MODEL_URL,
-            "Colon — EfficientNetB0 (Binary)"
+            "Colon — DenseNet121 (Binary)"
         )
     return _colon_model
 
 
 def load_gi_model():
-
+    """
+    Returns DenseNet121 GI model.
+    Downloads from Hugging Face on first call, cached after that.
+    """
     global _gi_model
     if _gi_model is None:
         _gi_model = _download_model(
             GI_MODEL_URL,
-            "GI — EfficientNetB0 (3-Class)"
+            "GI — DenseNet121 (3-Class)"
         )
     return _gi_model
+
 
 # ─────────────────────────────────────────────────────────────
 # PREPROCESSING
@@ -93,18 +117,24 @@ def load_gi_model():
 # Using the wrong one will give wrong or random predictions.
 # ─────────────────────────────────────────────────────────────
 def preprocess_colon(pil_img):
-
+    """
+    DenseNet121 preprocessing.
+    Scales pixel values to [-1, 1] range.
+    """
     img = pil_img.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img, dtype=np.float32)
-    arr = tf.keras.applications.efficientnet.preprocess_input(arr.copy())
+    arr = tf.keras.applications.densenet.preprocess_input(arr.copy())
     return np.expand_dims(arr, axis=0), np.array(img)
 
 
 def preprocess_gi(pil_img):
-
+    """
+    DenseNet121 preprocessing.
+    Scales pixel values to [-1, 1] range.
+    """
     img = pil_img.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img, dtype=np.float32)
-    arr = tf.keras.applications.efficientnet.preprocess_input(arr.copy())
+    arr = tf.keras.applications.densenet.preprocess_input(arr.copy())
     return np.expand_dims(arr, axis=0), np.array(img)
 
 
@@ -114,7 +144,11 @@ def preprocess_gi(pil_img):
 # the backbone (model.layers[1]) to find the last Conv2D.
 # ─────────────────────────────────────────────────────────────
 def make_gradcam(model, img_array, pred_index=None):
-
+    """
+    Computes Grad-CAM heatmap for any transfer learning model.
+    Returns a 2D numpy array of values between 0 and 1,
+    or None if computation fails.
+    """
     try:
         backbone  = model.layers[1]
         last_conv = None
@@ -164,7 +198,10 @@ def make_gradcam(model, img_array, pred_index=None):
 
 
 def overlay_gradcam(original_arr, heatmap, alpha=0.45):
-
+    """
+    Overlays Grad-CAM heatmap onto original image using jet colormap.
+    Returns numpy array of same shape as original_arr.
+    """
     if heatmap is None:
         return original_arr
 
@@ -189,9 +226,25 @@ def arr_to_base64(arr: np.ndarray) -> str:
 # Called by FastAPI endpoint for every image upload
 # ─────────────────────────────────────────────────────────────
 def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
+    """
+    Main prediction function.
 
-    if image_bytes is None:
-        return {"error": "No image file provided."}
+    Parameters
+    ----------
+    image_bytes  : raw bytes of the uploaded image file
+    dataset_type : "colon" or "gi"
+
+    Returns
+    -------
+    dict with keys:
+        prediction    — top predicted class display name
+        confidence    — confidence % of top prediction (float)
+        all_probs     — dict of all class names → confidence %
+        gradcam_image — base64 PNG string of Grad-CAM overlay
+        original_image— base64 PNG string of original image
+        model_used    — name of model used
+        dataset_type  — echoes back the dataset_type input
+    """
 
     # ── Open image ──────────────────────────────────────────
     try:

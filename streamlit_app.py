@@ -17,7 +17,7 @@ def main():
     st.title("Automated Multi-Class Gastrointestinal Anomaly Detection")
     st.write("Upload a colonoscopy image to get predictions.")
 
-    # DATASET SELECTOR (NEW)
+    # ✅ DATASET SELECTOR (NEW)
     dataset_type = st.selectbox(
         "Select Model",
         ["colon", "gi"]
@@ -40,8 +40,8 @@ def main():
     image.save(buf, format="JPEG")
     buf.seek(0)
     
-    # Show loading instead of white screen
-    with st.spinner("Loading model and analyzing image..."):
+    # ✅ Show loading instead of white screen
+    with st.spinner("🔄 Loading model and analyzing image..."):
         result = predict_image(buf.read(), dataset_type)
 
     # Handle errors
@@ -49,16 +49,16 @@ def main():
         st.error(result["error"])
         return
 
-    # DISPLAY RESULTS
+    # ✅ DISPLAY RESULTS
     if "Unknown" in result["prediction"]:
-        st.warning("This does not appear to be a valid colon image.")
+        st.warning("⚠️ This does not appear to be a valid colon image.")
     else:
         st.success(f"Prediction: {result['prediction']}")
     #st.success(f"Prediction: {result['prediction']}")
     st.info(f"Confidence: {result['confidence']}%")
     st.write(f"Model Used: {result['model_used']}")
 
-    # BAR CHART (NEW)
+    # ✅ BAR CHART (NEW 🔥)
     st.subheader("Class Probabilities")
     probs = result["all_probs"]
 
@@ -71,7 +71,7 @@ def main():
     ax.set_ylim([0, 100])
     st.pyplot(fig)
 
-    # SHOW GRAD-CAM (NEW)
+    # ✅ SHOW GRAD-CAM (NEW 🔥)
     st.subheader("Grad-CAM Visualization")
 
     gradcam_img = base64_to_image(result["gradcam_image"])
