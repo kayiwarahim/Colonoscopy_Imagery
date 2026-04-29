@@ -246,6 +246,11 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
         dataset_type  — echoes back the dataset_type input
     """
 
+    # Default empty values
+    all_probs = {}
+    gradcam_b64 = ""
+    original_b64 = ""
+
     # ── Open image ──────────────────────────────────────────
     try:
         pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -259,20 +264,15 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
         display    = COLON_DISPLAY
         is_binary  = True
         model_name = "DenseNet121"
-
     elif dataset_type == "gi":
         model      = load_gi_model()
         preprocess = preprocess_gi
         display    = GI_DISPLAY
         is_binary  = False
         model_name = "DenseNet121"
-
     else:
         return {
-            "error": (
-                f"Unknown dataset_type '{dataset_type}'. "
-                "Use 'colon' or 'gi'."
-            )
+            "error": f"Unknown dataset_type '{dataset_type}'. Use 'colon' or 'gi'."
         }
 
     # ── Preprocess ──────────────────────────────────────────
@@ -282,8 +282,6 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
     preds = model.predict(img_array, verbose=0)
 
     if is_binary:
-        #probs = preds[0]
-        #pred_idx = int(np.argmax(probs))
         prob_pos = float(preds[0][0])
         probs    = [prob_pos, 1.0 - prob_pos]
         pred_idx = 0 if prob_pos > 0.5 else 1
@@ -293,27 +291,37 @@ def predict_image(image_bytes: bytes, dataset_type: str) -> dict:
 
     pred_label = display[pred_idx]
     confidence = round(probs[pred_idx] * 100, 2)
-    #added to predict non-colon images
-    if confidence < 70:
-        return {
-        "prediction": "Unknown / Not a colon image",
-        "confidence": confidence,
-        "all_probs": all_probs,
-        "gradcam_image": gradcam_b64,
-        "original_image": original_b64,
-        "model_used": model_name,
-        "dataset_type": dataset_type,
-    }
-    all_probs  = {
+
+    # Build probability dictionary for all classes
+    all_probs = {
         label: round(prob * 100, 2)
         for label, prob in zip(display, probs)
     }
 
-    # ── Grad-CAM ─────────────────────────────────────────────
-    heatmap        = make_gradcam(model, img_array, pred_index=pred_idx)
-    gradcam_arr    = overlay_gradcam(original_arr, heatmap)
-    gradcam_b64    = arr_to_base64(gradcam_arr)
-    original_b64   = arr_to_base64(original_arr)
+    # Optional: detect if the image is very unlikely to be a colon image
+    # (e.g., max confidence < 30%). You can adjust threshold.
+    # Only do this if you have a reason; otherwise just return normal prediction.
+    if confidence < 30:   # very low confidence -> maybe wrong domain
+        return {
+            "prediction": "Unknown / Not a colon image",
+            "confidence": confidence,
+            "all_probs": all_probs,
+            "gradcam_image": "",   # no heatmap for unknown
+            "original_image": arr_to_base64(original_arr),
+            "model_used": model_name,
+            "dataset_type": dataset_type,
+        }
+
+    # ── Grad-CAM (only if confidence is decent) ──────────────
+    heatmap = make_gradcam(model, img_array, pred_index=pred_idx)
+    if heatmap is not None:
+        gradcam_arr = overlay_gradcam(original_arr, heatmap)
+        gradcam_b64 = arr_to_base64(gradcam_arr)
+    else:
+        # If Grad-CAM fails, send original image as placeholder
+        gradcam_b64 = arr_to_base64(original_arr)
+
+    original_b64 = arr_to_base64(original_arr)
 
     # ── Return response ──────────────────────────────────────
     return {
